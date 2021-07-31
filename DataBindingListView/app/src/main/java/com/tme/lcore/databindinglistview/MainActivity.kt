@@ -17,8 +17,8 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         for (i in 1..5) {
             val rcyViewModel = RcyViewModel()
-            rcyViewModel.name.set("heshufan${i}")
-            rcyViewModel.age.set("${i}")
+            rcyViewModel.name.value = "heshufan${i}"
+            rcyViewModel.age.value = "${i}"
             names.add(rcyViewModel)
         }
         adapter = SecondAdapter(names = names, context = this)

@@ -23,6 +23,7 @@ class SecondAdapter(private val names: ArrayList<RcyViewModel>, private val cont
         val inflater = LayoutInflater.from(context)
         val binding: ActivityMainItemBinding =
             DataBindingUtil.inflate(inflater, R.layout.activity_main_item, parent, false)
+        binding.lifecycleOwner = context as MainActivity
         return ViewHolder(binding)
     }
 
@@ -37,15 +38,15 @@ class SecondAdapter(private val names: ArrayList<RcyViewModel>, private val cont
     }
 
     var i = 0;
-    fun changeData(){
+    fun changeData() {
         i++
         //如果老的数据发生变化，就出触发更新，新加入的数据也会显示出来
-        names.get(1).name.set("heaotian${i}")
+        names.get(1).name.value = "heaotian${i}"
 
         //如果只是新增数据，就必须调用下面方法才会进行更新
         val rcyViewModel = RcyViewModel()
-        rcyViewModel.name.set("heshufan")
-        rcyViewModel.age.set("3")
+        rcyViewModel.name.value = "heshufan"
+        rcyViewModel.age.value = "3"
         names.add(rcyViewModel)
 //        notifyDataSetChanged()
     }
