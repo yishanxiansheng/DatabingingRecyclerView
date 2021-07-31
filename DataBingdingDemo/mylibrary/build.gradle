@@ -1,0 +1,143 @@
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+}
+
+class LibExtension {
+    String version
+    String message
+}
+
+class LibPlugin implements Plugin<Project> {
+    @Override
+    void apply(Project project) {
+        println 'this is lib plugin'
+        //创建 Extension
+        project.extensions.create('libConfig', LibExtension)
+
+        project.tasks.create('Task1', {
+            doLast {
+                println "Task1"
+            }
+        })
+        project.properties
+
+        project.tasks.create('Task2', {
+            doLast {
+                println "Task2"
+            }
+        })
+
+        //创建一个task
+        project.tasks.create('libTask', {
+            //这里先执行task1，然后执行task2 最后执行libTask
+            def task1 = project.tasks.findByName("Task1")
+            def task2 = project.tasks.findByName("Task2")
+            dependsOn task1
+            dependsOn task2
+            doLast {
+                LibExtension config = project.libConfig
+                println config.version
+                println config.message
+                println "heshufan"
+            }
+        })
+
+        project.afterEvaluate {
+            //这里的mergeDebugResources是gradle Android插件自带的Task
+            def mergeResourcesTask = project.tasks.findByName("mergeDebugResources")
+            def libTask = project.tasks.findByName("libTask")
+            mergeResourcesTask.dependsOn(libTask)
+            def libTasks = project.tasks.findByName("libTask")
+            addApiDependencies(project, "debug", project.files {
+                libTasks
+            })
+        }
+
+        def libTask = project.tasks.findByName("libTask")
+
+
+        Project appProject = project.rootProject.findProject(":app")
+        println "${appProject.getName()}"
+        assert appProject != null: "Project :app doesn't exist. To custom the host app project name, " +
+                "set `org.gradle.project.flutter.hostAppProjectName=<project-name>` in gradle.properties."
+        appProject.afterEvaluate {
+            assert appProject.android != null : "appproject android is null"
+            assert project.android != null : "project android is null"
+            project.android.libraryVariants.all { libraryVariant ->
+                println "libraryVariant"
+                appProject.android.applicationVariants.all { appProjectVariant ->
+                    Task mergeAssets = project
+                            .tasks
+                            .findByPath(":app:assembleDebug")
+                    assert mergeAssets
+                    println "mergeAssets.dependsOn(libTask)"
+                    mergeAssets.dependsOn(libTask)
+                }
+            }
+        }
+
+    }
+
+    void addApiDependencies(Project project, String variantName, Object dependency, Closure config = null) {
+        String configuration;
+        // `compile` dependencies are now `api` dependencies.
+        if (project.getConfigurations().findByName("api")) {
+            configuration = "${variantName}Api";
+        } else {
+            configuration = "${variantName}Compile";
+        }
+        project.dependencies.add(configuration, dependency, config)
+    }
+}
+
+apply plugin: LibPlugin
+//配置
+libConfig {
+    version = '1.0'
+    message = 'lib message'
+}
+
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.6.0'
+    implementation 'androidx.appcompat:appcompat:1.3.0'
+    implementation 'com.google.android.material:material:1.4.0'
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+}
